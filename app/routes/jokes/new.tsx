@@ -1,6 +1,5 @@
 import type { ActionFunction } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { Form } from "@remix-run/react";
 
 import { db } from "~/utils/db.server";
 
@@ -10,6 +9,8 @@ export const action: ActionFunction = async ({
   const form = await request.formData();
   const name = form.get("name");
   const content = form.get("content");
+  // we do this type check to be extra sure and to make TypeScript happy
+  // we'll explore validation next!
   if (
     typeof name !== "string" ||
     typeof content !== "string"
@@ -17,7 +18,9 @@ export const action: ActionFunction = async ({
     throw new Error(`Form not submitted correctly.`);
   }
 
-  const joke = await db.joke.create({ data: { name, content } });
+  const fields = { name, content };
+
+  const joke = await db.joke.create({ data: fields });
   return redirect(`/jokes/${joke.id}`);
 };
 
@@ -25,7 +28,7 @@ export default function NewJokeRoute() {
   return (
     <div>
       <p>Add your own hilarious joke</p>
-      <Form method="post">
+      <form method="post">
         <div>
           <label>
             Name: <input type="text" name="name" />
@@ -41,7 +44,7 @@ export default function NewJokeRoute() {
             Add
           </button>
         </div>
-      </Form>
-      </div>
+      </form>
+    </div>
   );
 }
