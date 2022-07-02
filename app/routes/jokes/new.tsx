@@ -28,7 +28,7 @@ export default function NewJokeRoute() {
   return (
     <div>
       <p>Add your own hilarious joke</p>
-      <form method="post">
+      <form method="Post">
         <div>
           <label>
             Name: <input type="text" name="name" />
