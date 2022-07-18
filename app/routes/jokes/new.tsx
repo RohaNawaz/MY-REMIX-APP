@@ -1,45 +1,66 @@
 import type { ActionFunction } from "@remix-run/node";
-import { redirect } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
 import { useActionData } from "@remix-run/react";
+
 import { db } from "~/utils/db.server";
 
-function validateJokeName(name:string) {
-  if (name.length < 3) {
-    return "Joke name must be at least 3 character long";
+function validateJokeContent(content: string) {
+  if (content.length < 10) {
+    return `That joke is too short`;
   }
 }
 
-function validateJokeContent(content:string) {
-  if (content.length < 10) {
-    return "Joke content must be at least 10 character long";
+function validateJokeName(name: string) {
+  if (name.length < 3) {
+    return `That joke's name is too short`;
   }
 }
 
 type ActionData = {
-  formError?: string,
-  fields?: {name?: string, content?: string},
-  fieldErrors?: {name?: string, content?: string},
-}
+  formError?: string;
+  fieldErrors?: {
+    name: string | undefined;
+    content: string | undefined;
+  };
+  fields?: {
+    name: string;
+    content: string;
+  };
+};
 
-export const action: ActionFunction = async ({request}): Promise<Response | ActionData> => {
+const badRequest = (data: ActionData) =>
+  json(data, { status: 400 });
+
+export const action: ActionFunction = async ({
+  request,
+}): Promise<Response | ActionData> => {
+  const userId = getUserId(request);
+  if(!userId) {
+      return redirect("/login?redirectTo=/jokes/new")
+  }
   const form = await request.formData();
   const name = form.get("name");
   const content = form.get("content");
-  if (typeof name !== "string" || typeof content !== "string") {
-    return {formError:"Form not submitted correctl"};
+  if (
+    typeof name !== "string" ||
+    typeof content !== "string"
+  ) {
+    return badRequest({
+      formError: `Form not submitted correctly.`,
+    });
   }
 
-  let fieldErrors = {
+  const fieldErrors = {
     name: validateJokeName(name),
-    content: validateJokeContent(content)
-  }
+    content: validateJokeContent(content),
+  };
   if (Object.values(fieldErrors).some(Boolean)) {
-      return {fieldErrors, fields: {name, content}};
+    return badRequest({ fieldErrors, fields: { name, content } });
   }
 
-  const fields = { name, content };
-
-  const joke = await db.joke.create({ data: fields });
+  const joke = await db.joke.create({
+    data: {name, content, jokesterId: userId }
+   });
   return redirect(`/jokes/${joke.id}`);
 };
 
@@ -122,3 +143,11 @@ export default function NewJokeRoute() {
     </div>
   );
 }
+
+function getUserId(request: Request) {
+  throw new Error("Function not implemented.");
+}
+function requireUserId(request: Request) {
+  throw new Error("Function not implemented.");
+}
+
