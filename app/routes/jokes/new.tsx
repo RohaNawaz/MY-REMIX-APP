@@ -3,6 +3,7 @@ import { json, redirect } from "@remix-run/node";
 import { useActionData } from "@remix-run/react";
 
 import { db } from "~/utils/db.server";
+import { requireUserId } from "~/utils/session.server";
 
 function validateJokeContent(content: string) {
   if (content.length < 10) {
@@ -33,11 +34,8 @@ const badRequest = (data: ActionData) =>
 
 export const action: ActionFunction = async ({
   request,
-}): Promise<Response | ActionData> => {
-  const userId = getUserId(request);
-  if(!userId) {
-      return redirect("/login?redirectTo=/jokes/new")
-  }
+}): Promise<Response | ActionData>  => {
+  const userId = await requireUserId(request);
   const form = await request.formData();
   const name = form.get("name");
   const content = form.get("content");
@@ -144,10 +142,11 @@ export default function NewJokeRoute() {
   );
 }
 
-function getUserId(request: Request) {
-  throw new Error("Function not implemented.");
-}
-function requireUserId(request: Request) {
-  throw new Error("Function not implemented.");
-}
+// function getUserId(request: Request) {
+//   throw new Error("Function not implemented.");
+// }
+
+// function requireUserId(request: Request) {
+//   throw new Error("Function not implemented.");
+// }
 

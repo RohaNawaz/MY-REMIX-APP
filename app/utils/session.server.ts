@@ -11,6 +11,17 @@ type LoginForm = {
   password: string;
 };
 
+export async function register({
+  username,
+  password,
+}: LoginForm) {
+  const passwordHash = await bcrypt.hash(password, 10);
+  const user = await db.user.create({
+    data: { username, passwordHash },
+  });
+  return { id: user.id, username };
+}
+
 export async function login({
   username,
   password,
@@ -35,9 +46,6 @@ if (!sessionSecret) {
 const storage = createCookieSessionStorage({
   cookie: {
     name: "RJ_session",
-    // normally you want this to be `secure: true`
-    // but that doesn't work on localhost for Safari
-    // https://web.dev/when-to-use-local-https/
     secure: process.env.NODE_ENV === "production",
     secrets: [sessionSecret],
     sameSite: "lax",
@@ -68,5 +76,32 @@ export async function getUserId(request: Request) {
  let session = await getUserSession(request);
  let userId = session.get("userId");
  if (typeof userId !== 'string') return null
- return userId
+ return userId;
+}
+
+export async function requireUserId(
+ request: Request,
+ redirectTo: string = new URL(request.url).pathname
+) {
+  let userId = await getUserId(request);
+  if (!userId) {
+    let params = new URLSearchParams([["redirectTo", redirectTo]]);
+    throw redirect(`/login?${params}`);
+  }
+  return userId;
+}
+
+export async function getUser(request: Request) {
+  let userId = await getUserId(request);
+  if (!userId) return null;
+  return db.user.findUnique({where: {id: userId}});
+}
+
+export async function logout(request: Request) {
+  let session = await getUserSession(request);
+  return redirect(`/jokes`, {
+    headers: {
+      "Set-Cookie": await storage.destroySession(session,),
+    },
+  });
 }
